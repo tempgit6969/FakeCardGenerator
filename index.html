@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fake Card Generator - Flippable</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a1a2e; /* Dark blueish background */
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column; /* Align button below card */
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow: hidden; 
+        }
+
+        .card-scene { /* For 3D perspective */
+            perspective: 1500px;
+            margin-bottom: 30px; /* Space between card and button */
+        }
+
+        .card-wrapper { /* This will handle the flip */
+            width: 350px;
+            height: 220px;
+            position: relative;
+            transition: transform 0.8s cubic-bezier(0.25, 0.8, 0.25, 1);
+            transform-style: preserve-3d;
+            cursor: pointer; /* Indicate it's flippable */
+        }
+
+        .card-wrapper.is-flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face { /* Common styling for front and back */
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255,255,255,0.1) inset;
+            backface-visibility: hidden; /* Hide the non-visible face during flip */
+            background-size: cover;
+            background-position: center;
+            overflow: hidden; 
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card-front {
+            /* Front specific styles if any, mostly inherited from .card-face */
+        }
+        
+        .card-back {
+            transform: rotateY(180deg); /* Position back face correctly */
+            background-color: #bdbdbd; /* Generic card back color */
+            color: #333;
+        }
+
+        /* Visa Card Styling */
+        .card-wrapper.visa .card-front {
+            background: linear-gradient(135deg, #1a2a6c 0%, #4a70c2 50%, #fdbb2d 100%); /* Adjusted Visa gradient */
+        }
+        .card-wrapper.visa .card-back { 
+             background: linear-gradient(135deg, #e0e0e0 0%, #cfcfcf 100%);
+        }
+
+
+        /* Mastercard Styling */
+        .card-wrapper.mastercard .card-front {
+            background: linear-gradient(135deg, #333333 0%, #dd1818 50%, #fdbb2d 100%);
+        }
+         .card-wrapper.mastercard .card-back { 
+            background: linear-gradient(135deg, #e0e0e0 0%, #cfcfcf 100%);
+        }
+
+        .card-network-logo-container {
+            height: 40px; 
+            display: flex;
+            align-items: center;
+        }
+
+        .card-network-logo-container svg { /* For Mastercard SVG */
+            height: 100%; 
+            width: auto;  
+        }
+        
+        .card-network-logo-container .mastercard-logo-svg {
+             height: 45px; 
+             max-width: 80px;
+        }
+        
+        /* Styling for the VISA text logo */
+        .visa-text-logo {
+            font-family: 'Inter', sans-serif;
+            font-weight: 800; /* Bold font */
+            font-size: 38px; /* Prominent size */
+            letter-spacing: -1px; /* Slightly tighter letter spacing */
+            color: #0057A0; /* Core Visa blue */
+            /* Applying a subtle gradient to mimic the image's text effect */
+            background: linear-gradient(180deg, #0057A0 60%, #004C8F 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1); /* Subtle shadow for depth */
+        }
+
+
+        .card-chip {
+            width: 50px;
+            height: 40px;
+            background: linear-gradient(135deg, #d4af37, #c0c0c0, #b08d57);
+            border-radius: 5px;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+        }
+
+        .card-number {
+            font-family: 'Space Mono', monospace;
+            font-size: 22px;
+            letter-spacing: 3px;
+            color: white;
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+            margin-top: 10px;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.5s ease-out 0.3s, transform 0.5s ease-out 0.3s;
+        }
+
+        .card-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+            color: #f0f0f0;
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.3);
+        }
+
+        .card-holder-name, .card-expiry-date {
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+        }
+        .card-holder-name { transition-delay: 0.5s; }
+        .card-expiry-date { transition-delay: 0.7s; }
+
+        .card-hologram {
+            position: absolute;
+            bottom: 20px;
+            right: 25px;
+            width: 60px;
+            height: 40px;
+            background: linear-gradient(45deg, #aaa, #fff, #aaa, #555, #aaa, #fff, #aaa);
+            background-size: 400% 400%;
+            border-radius: 5px;
+            opacity: 0.7;
+            animation: hologramShine 5s infinite linear;
+        }
+
+        @keyframes hologramShine {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Card Back Specifics */
+        .magnetic-stripe {
+            height: 45px;
+            background-color: #333;
+            margin-top: 20px; 
+        }
+
+        .cvv-signature-area {
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .signature-line {
+            flex-grow: 1;
+            height: 30px;
+            background-color: #fff;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        
+        .cvv-box {
+            width: 60px;
+            height: 30px;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Space Mono', monospace;
+            font-style: italic;
+            font-weight: 700;
+            color: #333;
+            font-size: 16px;
+        }
+
+        /* Animation for card appearing (initial load or new card gen) */
+        .card-wrapper.initial-enter {
+            transform: scale(0.7); /* Start smaller */
+            opacity: 0;
+        }
+        .card-wrapper.initial-enter-active {
+            transform: scale(1); /* Normal size */
+            opacity: 1;
+        }
+
+        /* Animation for details appearing */
+        .details-loaded .card-number,
+        .details-loaded .card-holder-name,
+        .details-loaded .card-expiry-date {
+            opacity: 1;
+            transform: translateY(0px);
+        }
+
+        .generate-button {
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(145deg, #007bff, #0056b3);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+        }
+
+        .generate-button:hover {
+            background: linear-gradient(145deg, #0056b3, #003d80);
+            box-shadow: 0 6px 20px rgba(0, 123, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .generate-button:active {
+            transform: translateY(0px);
+            box-shadow: 0 2px 10px rgba(0, 123, 255, 0.2);
+        }
+
+    </style>
+</head>
+<body>
+    <div class="card-scene">
+        <div id="cardWrapper" class="card-wrapper">
+            <div id="cardFront" class="card-face card-front">
+                <div class="flex justify-between items-start">
+                    <div id="cardNetworkLogoContainer" class="card-network-logo-container">
+                        </div>
+                    <div class="card-chip"></div>
+                </div>
+                
+                <div>
+                    <div id="cardNumber" class="card-number">---- ---- ---- ----</div>
+                    <div class="card-details mt-4">
+                        <div>
+                            <p class="text-xs uppercase tracking-wider">Card Holder</p>
+                            <p id="cardHolderName" class="font-medium text-base">YOUR NAME HERE</p>
+                        </div>
+                        <div>
+                            <p class="text-xs uppercase tracking-wider text-right">Expires</p>
+                            <p id="cardExpiryDate" class="font-medium text-base text-right">MM/YY</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-hologram"></div>
+            </div>
+
+            <div id="cardBack" class="card-face card-back">
+                <div class="magnetic-stripe"></div>
+                <div class="cvv-signature-area">
+                    <div class="signature-line"></div>
+                    <div id="cardCvv" class="cvv-box">---</div>
+                </div>
+                <div class="text-xs text-gray-600 mt-auto text-center p-2">
+                    For demonstration purposes only. Not a real credit card.
+                </div>
+            </div>
+        </div>
+    </div>
+    <button id="generateButton" class="generate-button">✨ Generate New Card</button>
+
+    <script>
+        const cardWrapperElement = document.getElementById('cardWrapper');
+        const cardNumberElement = document.getElementById('cardNumber');
+        const cardHolderNameElement = document.getElementById('cardHolderName');
+        const cardExpiryDateElement = document.getElementById('cardExpiryDate');
+        const cardNetworkLogoContainerElement = document.getElementById('cardNetworkLogoContainer');
+        const cardCvvElement = document.getElementById('cardCvv');
+        const generateButton = document.getElementById('generateButton');
+
+        const cardNetworks = ['visa', 'mastercard'];
+        const firstNames = ["Alex", "Jamie", "Casey", "Jordan", "Taylor", "Morgan", "Skyler", "Riley", "Peyton", "Blake"];
+        const lastNames = ["Smith", "Jones", "Williams", "Brown", "Davis", "Miller", "Wilson", "Moore", "Garcia", "Lee"];
+
+        // Updated Logos: VISA as styled text, Mastercard as SVG
+        const logos = {
+            visa: `<span class="visa-text-logo">VISA</span>`, // Simple span with a class for styling
+            mastercard: `
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 180" class="mastercard-logo-svg">
+                    <circle cx="100" cy="90" r="70" fill="#EB001B"/>
+                    <circle cx="200" cy="90" r="70" fill="#F79E1B"/>
+                    <path d="M150,90a70,70 0 0,1 0,-0.01 M150,90a70,70 0 0,0 0,-0.01" fill="#FF5F00"/>
+                </svg>`
+        };
+
+
+        function generateRandomDigits(length) {
+            let digits = '';
+            for (let i = 0; i < length; i++) {
+                digits += Math.floor(Math.random() * 10);
+            }
+            return digits;
+        }
+
+        function formatCardNumber(number) {
+            return number.match(/.{1,4}/g).join(' ');
+        }
+
+        function generateExpiryDate() {
+            const currentYear = new Date().getFullYear() % 100;
+            const randomYearOffset = Math.floor(Math.random() * 5) + 2; 
+            const year = currentYear + randomYearOffset;
+            const month = Math.floor(Math.random() * 12) + 1;
+            return `${String(month).padStart(2, '0')}/${year}`;
+        }
+        
+        function generateRandomName() {
+            const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+            const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+            return `${firstName.toUpperCase()} ${lastName.toUpperCase()}`;
+        }
+
+        function generateCard() {
+            if (cardWrapperElement.classList.contains('is-flipped')) {
+                cardWrapperElement.classList.remove('is-flipped');
+            }
+
+            cardWrapperElement.classList.remove('details-loaded');
+            cardWrapperElement.classList.remove('initial-enter-active'); 
+            
+            void cardWrapperElement.offsetWidth; 
+
+            cardWrapperElement.classList.add('initial-enter'); 
+
+            const randomNetwork = cardNetworks[Math.floor(Math.random() * cardNetworks.length)];
+
+            const randomNumber = generateRandomDigits(16);
+            const randomName = generateRandomName();
+            const randomExpiry = generateExpiryDate();
+            const randomCvv = generateRandomDigits(3);
+
+            let currentClasses = Array.from(cardWrapperElement.classList);
+            currentClasses = currentClasses.filter(cls => cls === 'card-wrapper' || cls === 'initial-enter' || cls === 'is-flipped' || cls === 'details-loaded' || cls === 'initial-enter-active');
+            cardWrapperElement.className = currentClasses.join(' ');
+            
+            cardWrapperElement.classList.add(randomNetwork); 
+            
+            cardNetworkLogoContainerElement.innerHTML = logos[randomNetwork] || ''; // Use the 'logos' object
+
+
+            setTimeout(() => {
+                cardWrapperElement.classList.remove('initial-enter');
+                cardWrapperElement.classList.add('initial-enter-active');
+            }, 50); 
+
+
+            setTimeout(() => {
+                cardNumberElement.textContent = formatCardNumber(randomNumber);
+                cardHolderNameElement.textContent = randomName;
+                cardExpiryDateElement.textContent = randomExpiry;
+                cardCvvElement.textContent = randomCvv;
+                
+                cardWrapperElement.classList.add('details-loaded');
+            }, 300); 
+        }
+
+        cardWrapperElement.addEventListener('click', () => {
+            cardWrapperElement.classList.toggle('is-flipped');
+        });
+
+        generateButton.addEventListener('click', generateCard);
+
+        window.addEventListener('load', () => {
+            cardWrapperElement.classList.add('initial-enter'); 
+            cardNumberElement.textContent = "---- ---- ---- ----";
+            cardHolderNameElement.textContent = "YOUR NAME HERE";
+            cardExpiryDateElement.textContent = "MM/YY";
+            cardCvvElement.textContent = "---";
+            cardNetworkLogoContainerElement.innerHTML = ''; 
+            
+            setTimeout(generateCard, 100); 
+        });
+    </script>
+</body>
+</html>
